@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
 @Composable
-fun LoginScreen(
+fun RegisterScreen(
     onLogin: (String, String) -> Unit,
     navController: NavController
 ) {
@@ -41,6 +41,40 @@ fun LoginScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
+        Column(Modifier.padding(16.dp)){
+
+            Row(){
+                OutlinedTextField(
+                    value = fName.value,
+                    onValueChange = {  fName.value = it },
+                    label = { Text("First Name") },
+                    modifier = Modifier.padding(bottom = 8.dp).weight(1f)
+                )
+
+                OutlinedTextField(
+                    value = lName.value,
+                    onValueChange = {  lName.value = it },
+                    label = { Text("Last Name") },
+                    modifier = Modifier.padding(bottom = 8.dp).weight(1f)
+                )
+            }
+
+            Row(){
+                OutlinedTextField(
+                    value = address.value,
+                    onValueChange = { address.value = it },
+                    label = { Text("Address") },
+                    modifier = Modifier.padding(bottom = 8.dp).weight(1f)
+                )
+
+                OutlinedTextField(
+                    value = pNumber.value,
+                    onValueChange = { pNumber.value = it },
+                    label = { Text("Mobile Number (e.g. 09** *** ****") },
+                    modifier = Modifier.padding(bottom = 8.dp).weight(1f)
+                )
+            }
+        }
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.Center,

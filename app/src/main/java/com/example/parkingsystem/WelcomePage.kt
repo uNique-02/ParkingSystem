@@ -17,9 +17,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 
 @Composable
-fun WelcomePage(){
+fun WelcomePage(
+    navController: NavController
+){
     Column{
         Column(
             Modifier
@@ -51,7 +54,9 @@ fun WelcomePage(){
             }
             Row(modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center) {
-                Button(onClick = { /*TODO*/ }) {
+                Button(onClick = {
+                    navController.navigate(ParkingAppScreen.Login.name)
+                }) {
                     Text("Login")
                 }
             }
@@ -64,12 +69,4 @@ fun WelcomePage(){
         }
 
     }
-}
-
-@Preview(showBackground = true,
-    showSystemUi = true)
-@Composable
-fun WelcomePagePreview(
-) {
-    WelcomePage()
 }
