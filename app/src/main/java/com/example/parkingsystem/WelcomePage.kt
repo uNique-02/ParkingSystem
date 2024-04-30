@@ -62,7 +62,7 @@ fun WelcomePage(
             }
             Row(modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center) {
-                Button(onClick = { /*TODO*/ }) {
+                Button(onClick = { navController.navigate(ParkingAppScreen.Register.name) }) {
                     Text("Register")
                 }
             }

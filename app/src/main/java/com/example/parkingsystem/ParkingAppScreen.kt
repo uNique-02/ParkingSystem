@@ -140,7 +140,7 @@ fun ParkingAreaList(
     navController: NavController = rememberNavController()
 ) {
     // Define the state of the search text
-    var searchText by remember { mutableStateOf("Tacloban") }
+    var searchText by remember { mutableStateOf(" ") }
 
     // Use a Box to layer content
     Box() {
