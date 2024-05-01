@@ -60,21 +60,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
 enum class ParkingAppScreen() {
-    WelcomePage,
-    Login,
-    Register,
-    MapView
+    WelcomePage, Login, Register, MapView
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ParkingAppBar(
-    canNavigateBack: Boolean,
-    navigateUp: () -> Unit,
-    modifier: Modifier = Modifier
+    canNavigateBack: Boolean, navigateUp: () -> Unit, modifier: Modifier = Modifier
 ) {
-    TopAppBar(
-        title = { Text(stringResource(id = R.string.app_name)) },
+    TopAppBar(title = { Text(stringResource(id = R.string.app_name)) },
         colors = TopAppBarDefaults.mediumTopAppBarColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
@@ -83,13 +77,11 @@ fun ParkingAppBar(
             if (canNavigateBack) {
                 IconButton(onClick = navigateUp) {
                     Icon(
-                        imageVector = Icons.Filled.ArrowBack,
-                        contentDescription = "Back Button"
+                        imageVector = Icons.Filled.ArrowBack, contentDescription = "Back Button"
                     )
                 }
             }
-        }
-    )
+        })
 }
 
 @Composable
@@ -97,42 +89,55 @@ fun ParkingApp(
     navController: NavHostController = rememberNavController()
 ) {
 
+    NavHost(
+        navController = navController,
+        startDestination = ParkingAppScreen.WelcomePage.name
+    ) {
+        composable(route = ParkingAppScreen.WelcomePage.name) {
+            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
+                WelcomePage(navController = navController)
+            }
+        }
+
+        composable(route = ParkingAppScreen.Login.name) {
+            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
+                LoginScreen(onLogin = { _, _ -> }, navController = navController)
+            }
+        }
+
+        composable(route = ParkingAppScreen.Register.name) {
+            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
+                RegisterScreen(onLogin = { _, _ -> }, navController = navController)
+            }
+        }
+
+        composable(route = ParkingAppScreen.MapView.name) {
+            ParkingAreaList()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ScaffoldWrapper(
+    canNavigateBack: Boolean,
+    navigateUp: () -> Unit,
+    content: @Composable (innerPadding: Modifier) -> Unit
+) {
     Scaffold(
         topBar = {
             ParkingAppBar(
-                canNavigateBack = false,
-                navigateUp = { /* TODO: implement back navigation */ }
+                canNavigateBack = canNavigateBack,
+                navigateUp = navigateUp
             )
         }
     ) { innerPadding ->
-        Modifier.padding(innerPadding)
-
-        NavHost(
-            navController = navController as NavHostController,
-            startDestination = ParkingAppScreen.WelcomePage.name,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(route = ParkingAppScreen.WelcomePage.name) {
-                WelcomePage(navController = navController)
-            }
-
-            composable(route = ParkingAppScreen.Login.name) {
-                LoginScreen(onLogin = { _, _ -> }, navController = navController)
-            }
-
-            composable(route = ParkingAppScreen.Register.name) {
-                RegisterScreen(onLogin = { _, _ -> }, navController = navController)
-            }
-
-            composable(route = ParkingAppScreen.MapView.name) {
-                ParkingAreaList()
-            }
-
-
+        Modifier.padding(innerPadding).let { paddingModifier ->
+            content(paddingModifier)
         }
-
     }
 }
+
 
 @Composable
 fun ParkingAreaList(
@@ -140,7 +145,7 @@ fun ParkingAreaList(
     navController: NavController = rememberNavController()
 ) {
     // Define the state of the search text
-    var searchText by remember { mutableStateOf("Tacloban") }
+    var searchText by remember { mutableStateOf(" ") }
 
     // Use a Box to layer content
     Box() {
@@ -162,8 +167,7 @@ fun ParkingAreaList(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Parking Areas",
-                    fontSize = 20.sp
+                    text = "Parking Areas", fontSize = 20.sp
                 )
 
                 Box(
@@ -171,8 +175,7 @@ fun ParkingAreaList(
                         .clip(CircleShape)
                         .background(Color(0XFF101921))
                 ) {
-                    TextField(
-                        value = searchText,
+                    TextField(value = searchText,
                         onValueChange = { searchText = it },
                         textStyle = TextStyle(fontSize = 20.sp),
                         trailingIcon = {
@@ -181,8 +184,7 @@ fun ParkingAreaList(
                                 contentDescription = "Search Icon"
                             )
                         },
-                        placeholder = { Text(text = "Search") }
-                    )
+                        placeholder = { Text(text = "Search") })
                 }
             }
 
@@ -254,46 +256,47 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
                     // Store the MapView instance in the state variable
                     mapView.value = this
                 }
-            },
-            modifier = Modifier
-                .fillMaxHeight() // Fill the full height of the screen
+            }, modifier = Modifier.fillMaxHeight() // Fill the full height of the screen
         )
 
         // FloatingActionButton for the "location" button
         // FloatingActionButton for the "location" button
-        FloatingActionButton(
-            onClick = {
-                // Access the map view instance
-                val map = mapView.value
+        FloatingActionButton(onClick = {
+            // Access the map view instance
+            val map = mapView.value
 
-                // Log the map instance
-                Log.e("MainActivity", "Map: $map")
+            // Log the map instance
+            Log.e("MainActivity", "Map: $map")
 
-                if (map == null) {
-                    // Log a message if mapView is null
-                    println("MapView instance is null")
-                    return@FloatingActionButton // Exit the click listener early if map is null
-                }
+            if (map == null) {
+                // Log a message if mapView is null
+                println("MapView instance is null")
+                return@FloatingActionButton // Exit the click listener early if map is null
+            }
 
-                // Access the MyLocationNewOverlay
-                val locationOverlay = map.overlays.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
-                if (locationOverlay == null) {
-                    // Log a message if MyLocationNewOverlay is null
-                    println("MyLocationNewOverlay instance is null")
-                    return@FloatingActionButton // Exit the click listener early if locationOverlay is null
-                }
+            // Access the MyLocationNewOverlay
+            val locationOverlay =
+                map.overlays.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
+            if (locationOverlay == null) {
+                // Log a message if MyLocationNewOverlay is null
+                println("MyLocationNewOverlay instance is null")
+                return@FloatingActionButton // Exit the click listener early if locationOverlay is null
+            }
 
-                // If the overlay exists and has a valid location, center the map on the hardcoded location
-                val taclobanGeoPoint = GeoPoint(11.2443, 125.0015)
-                //map.controller.setCenter(taclobanGeoPoint)
-                //map.controller.setZoom(9.0) // Adjust the zoom level as needed
+            // If the overlay exists and has a valid location, center the map on the hardcoded location
+            val taclobanGeoPoint = GeoPoint(11.2443, 125.0015)
+            //map.controller.setCenter(taclobanGeoPoint)
+            //map.controller.setZoom(9.0) // Adjust the zoom level as needed
 
-                map.controller.animateTo(taclobanGeoPoint, 15.0, 2000)
+            map.controller.animateTo(taclobanGeoPoint, 15.0, 2000)
 
-                // Log the current map center
-                val currentCenter = map.getMapCenter()
-                Log.e("MainActivity", "Location: ${currentCenter.latitude}, ${currentCenter.longitude}")
-            },
+            // Log the current map center
+            val currentCenter = map.getMapCenter()
+            Log.e(
+                "MainActivity",
+                "Location: ${currentCenter.latitude}, ${currentCenter.longitude}"
+            )
+        },
             modifier = Modifier
                 .padding(16.dp)
                 .align(Alignment.BottomEnd), // Align the button to the bottom-right corner
@@ -303,8 +306,7 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
                     imageVector = Icons.Default.LocationOn, // Choose the appropriate icon
                     contentDescription = "Show My Location"
                 )
-            }
-        )
+            })
     }
 }
 
@@ -316,13 +318,11 @@ fun ParkingAreaItem(title: String, price: String) {
     ) {
 
         Text(
-            text = title,
-            modifier = Modifier.weight(0.7f)
+            text = title, modifier = Modifier.weight(0.7f)
         )
 
         Text(
-            text = price,
-            modifier = Modifier.weight(0.3f)
+            text = price, modifier = Modifier.weight(0.3f)
         )
     }
 }
