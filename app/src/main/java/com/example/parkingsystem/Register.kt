@@ -1,11 +1,13 @@
 package com.example.parkingsystem
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -20,6 +22,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,12 +36,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
 @Composable
 fun RegisterScreen(
-    onLogin: (String, String) -> Unit,
-    navController: NavController
+    onLogin: (String, String) -> Unit, navController: NavController
 ) {
     // Define state variables for username and password inputs
     val fName = remember { mutableStateOf("") }
@@ -49,27 +52,32 @@ fun RegisterScreen(
     val username = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
 
+    var isPhoneNumberValid = remember { mutableStateOf(false) }
+    var isfNameValid = remember { mutableStateOf(false) }
+    var islNameValid = remember { mutableStateOf(false) }
+    var isuNameValid = remember { mutableStateOf(false) }
+    var isPasswordStrong = remember { mutableStateOf(false) }
+
     // Create the login screen layout
     Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
     ) {
         Column(Modifier.padding(16.dp)) {
 
             Row() {
-                OutlinedTextField(
-                    value = fName.value,
-                    onValueChange = { fName.value = it },
+                TextField(value = fName.value,
+                    onValueChange = { value -> fName.value = value
+                                    isfNameValid.value = value.isNotEmpty() },
                     label = { Text("First Name") },
                     modifier = Modifier
                         .padding(bottom = 8.dp)
                         .weight(1f)
-                        .padding(end = 4.dp)
+                        .padding(end = 4.dp),
                 )
 
-                OutlinedTextField(
-                    value = lName.value,
-                    onValueChange = { lName.value = it },
+                TextField(value = lName.value,
+                    onValueChange = { value -> lName.value = value
+                                    islNameValid.value = value.isNotEmpty()},
                     label = { Text("Last Name") },
                     modifier = Modifier
                         .padding(bottom = 8.dp)
@@ -78,8 +86,7 @@ fun RegisterScreen(
             }
 
             Row {
-                OutlinedTextField(
-                    value = address.value,
+                TextField(value = address.value,
                     onValueChange = { address.value = it },
                     label = { Text("Address") },
                     modifier = Modifier
@@ -87,11 +94,11 @@ fun RegisterScreen(
                         .weight(2f)
                 )
             }
-            Row(){
-                OutlinedTextField(
+            Row {
+                PhoneNumberInputField(
                     value = pNumber.value,
                     onValueChange = { pNumber.value = it },
-                    label = { Text("Mobile Number (e.g. 09** *** ****") },
+                    onValidityChange = { isPhoneNumberValid.value = it }, // Use the state setter function
                     modifier = Modifier
                         .padding(bottom = 8.dp)
                         .weight(2f)
@@ -108,7 +115,8 @@ fun RegisterScreen(
             Row {
                 UsernameField(
                     value = username.value,
-                    onChange = { username.value = it },
+                    onChange = { value -> username.value = value
+                                    isuNameValid.value = value.isNotEmpty() },
                     modifier = Modifier
                         .padding(bottom = 8.dp)
                         .weight(2f)
@@ -116,9 +124,9 @@ fun RegisterScreen(
             }
 
             Row {
-                RegPasswordField(
-                    value = password.value,
+                RegPasswordField(value = password.value,
                     onChange = { password.value = it },
+                    onValidityChange = { isPasswordStrong.value = it },
                     submit = { /*TODO*/ },
                     modifier = Modifier
                         .padding(bottom = 16.dp)
@@ -127,13 +135,12 @@ fun RegisterScreen(
             }
 
             // Login button
-            Button(
-                onClick = {
-                    // Handle the login action
-                    onLogin(username.value, password.value)
-                    navController.navigate(ParkingAppScreen.MapView.name)
-                }
-            ) {
+            Button(onClick = {
+                // Handle the login action
+                onLogin(username.value, password.value)
+                navController.navigate(ParkingAppScreen.MapView.name)
+            },
+                enabled = isPhoneNumberValid.value && isfNameValid.value && islNameValid.value && isPasswordStrong.value){
                 Text("Register")
             }
         }
@@ -144,6 +151,7 @@ fun RegisterScreen(
 fun RegPasswordField(
     value: String,
     onChange: (String) -> Unit,
+    onValidityChange: (Boolean) -> Unit, // Add callback function
     submit: () -> Unit,
     modifier: Modifier = Modifier,
     label: String = "Password",
@@ -179,9 +187,7 @@ fun RegPasswordField(
     // Leading icon for the password field
     val leadingIcon = @Composable {
         Icon(
-            Icons.Default.Key,
-            contentDescription = "",
-            tint = MaterialTheme.colorScheme.primary
+            Icons.Default.Key, contentDescription = "", tint = MaterialTheme.colorScheme.primary
         )
     }
 
@@ -197,28 +203,28 @@ fun RegPasswordField(
     }
 
     // Password input field
-    TextField(
-        value = value,
+    TextField(value = value,
         onValueChange = { newPassword ->
             // Update the password value
             onChange(newPassword)
             // Validate the password strength
             isPasswordStrong = isStrongPassword(newPassword)
+            onValidityChange(isPasswordStrong)
         },
         modifier = modifier,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
         keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Done,
-            keyboardType = KeyboardType.Password
+            imeAction = ImeAction.Done, keyboardType = KeyboardType.Password
         ),
-        keyboardActions = KeyboardActions(
-            onDone = { submit() }
-        ),
+        keyboardActions = KeyboardActions(onDone = { submit() }),
         placeholder = { Text(placeholder) },
         label = { Text(label) },
         singleLine = true,
-        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation()
+        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        colors = TextFieldDefaults.colors(
+            errorContainerColor = MaterialTheme.colorScheme.errorContainer,
+        )
     )
 
     // Display an error message if the password is not strong
@@ -226,8 +232,66 @@ fun RegPasswordField(
         Text(
             text = "Password must be at least 8 characters long and include uppercase, lowercase, digit, and special character.",
             color = MaterialTheme.colorScheme.error,
-            modifier = modifier // Reuse the same modifier to match the width of the TextField
+            fontSize = 10.sp,
+            modifier = Modifier
+                .padding(top = 4.dp, start = 10.dp)
+                .width(50.dp) // Add padding for separation
         )
     }
 }
+
+@Composable
+fun PhoneNumberInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onValidityChange: (Boolean) -> Unit, // Add callback function
+    modifier: Modifier = Modifier,
+    label: String = "Phone Number",
+    placeholder: String = "Enter your phone number",
+    errorMessage: String = "Invalid phone number"
+) {
+    var isPhoneNumberValid by remember { mutableStateOf(true) }
+
+    // Validate the phone number when the value changes
+    fun validatePhoneNumber(phoneNumber: String) {
+        isPhoneNumberValid = isValidPhoneNumber(phoneNumber)
+        onValidityChange(isPhoneNumberValid) // Invoke the callback function
+    }
+
+    // Phone number input field
+    TextField(value = value,
+        onValueChange = { newPhoneNumber ->
+            onValueChange(newPhoneNumber)
+            validatePhoneNumber(newPhoneNumber)
+        },
+        modifier = modifier,
+        placeholder = { Text(placeholder) },
+        label = { Text(label) },
+        isError = !isPhoneNumberValid,
+        colors = TextFieldDefaults.colors()
+    )
+
+    // Display an error message if the phone number is invalid
+    if (!isPhoneNumberValid) {
+        Text(
+            text = errorMessage,
+            color = MaterialTheme.colorScheme.error,
+            fontSize = 10.sp,
+            modifier = Modifier
+                .padding(top = 4.dp, start = 10.dp)
+                .width(50.dp)
+        )
+    }
+}
+
+
+fun isValidPhoneNumber(phoneNumber: String): Boolean {
+    // Define the regex pattern for a valid phone number
+    val phoneNumberPattern = Regex("^09\\d{9}$")
+    // Check if the phone number matches the pattern
+    return phoneNumberPattern.matches(phoneNumber)
+}
+
+
+
 

@@ -56,6 +56,14 @@ fun LoginScreen(
     val username = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
 
+    val isuNameValid = remember {
+        mutableStateOf(false)
+    }
+
+    val isPasswordValid = remember {
+        mutableStateOf(false)
+    }
+
     // Create the login screen layout
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -69,13 +77,15 @@ fun LoginScreen(
 
             UsernameField(
                 value = username.value,
-                onChange = { username.value = it},
+                onChange = { value -> username.value = value
+                    isuNameValid.value = value.isNotEmpty() },
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
             PasswordField(
                 value = password.value,
-                onChange = { password.value = it},
+                onChange = { value -> password.value = value
+                    isPasswordValid.value = value.isNotEmpty() },
                 submit = { /*TODO*/ },
                 modifier = Modifier.padding(bottom = 16.dp))
 
@@ -85,7 +95,8 @@ fun LoginScreen(
                     // Handle the login action
                     onLogin(username.value, password.value)
                     navController.navigate(ParkingAppScreen.MapView.name)
-                }
+                },
+                enabled = isuNameValid.value && isPasswordValid.value
             ) {
                 Text("Login")
             }

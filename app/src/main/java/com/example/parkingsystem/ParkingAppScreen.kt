@@ -1,9 +1,10 @@
 package com.example.parkingsystem
 
-import android.Manifest
-import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,31 +34,40 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.osmdroid.api.IMapController
+import org.osmdroid.bonuspack.location.NominatimPOIProvider
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.FolderOverlay
+import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+
 
 enum class ParkingAppScreen() {
     WelcomePage, Login, Register, MapView
@@ -86,7 +96,7 @@ fun ParkingAppBar(
 
 @Composable
 fun ParkingApp(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
 ) {
 
     NavHost(
@@ -94,21 +104,23 @@ fun ParkingApp(
         startDestination = ParkingAppScreen.WelcomePage.name
     ) {
         composable(route = ParkingAppScreen.WelcomePage.name) {
-            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
+            ScaffoldWrapper(
+                canNavigateBack = false,
+                navigateUp = { /* Implement back navigation */ }) {
                 WelcomePage(navController = navController)
             }
         }
 
         composable(route = ParkingAppScreen.Login.name) {
-            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
+            ScaffoldWrapper(
+                canNavigateBack = false,
+                navigateUp = { /* Implement back navigation */ }) {
                 LoginScreen(onLogin = { _, _ -> }, navController = navController)
             }
         }
 
         composable(route = ParkingAppScreen.Register.name) {
-            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
-                RegisterScreen(onLogin = { _, _ -> }, navController = navController)
-            }
+            RegisterScreen(onLogin = { _, _ -> }, navController = navController)
         }
 
         composable(route = ParkingAppScreen.MapView.name) {
@@ -138,11 +150,10 @@ fun ScaffoldWrapper(
     }
 }
 
-
 @Composable
 fun ParkingAreaList(
     modifier: Modifier = Modifier.fillMaxSize(),
-    navController: NavController = rememberNavController()
+    navController: NavController = rememberNavController(),
 ) {
     // Define the state of the search text
     var searchText by remember { mutableStateOf(" ") }
@@ -151,7 +162,8 @@ fun ParkingAreaList(
     Box() {
         // OSMDroidMapView as the background covering the whole screen
         OSMDroidMapView(
-            modifier = Modifier.fillMaxHeight()// This ensures the map view covers the entire screen
+            modifier = Modifier.fillMaxHeight()
+            // This ensures the map view covers the entire screen
         )
 
         // Column to hold the overlays
@@ -167,7 +179,7 @@ fun ParkingAreaList(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Parking Areas", fontSize = 20.sp
+                    text = "Parking Areas", fontSize = 16.sp
                 )
 
                 Box(
@@ -181,7 +193,12 @@ fun ParkingAreaList(
                         trailingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = "Search Icon"
+                                contentDescription = "Search Icon",
+                                modifier = Modifier.clickable {
+                                    // Handle the search icon click here
+                                    // For example, perform a search operation based on searchText
+                                    //getGeoPoint(searchText)
+                                }
                             )
                         },
                         placeholder = { Text(text = "Search") })
@@ -206,6 +223,7 @@ fun ParkingAreaList(
             // Parking area items
             ParkingAreaItem(title = "RTR Plaza", price = "FREE")
             ParkingAreaItem(title = "Nique'Residence", price = "P20/HR")
+
         }
     }
 }
@@ -213,6 +231,256 @@ fun ParkingAreaList(
 @Composable
 fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
     // Define a state to hold the MapView instance
+
+    val context = LocalContext.current // Get current context
+    val mapViewState = remember { mutableStateOf<MapView?>(null) }
+    val MY_USER_AGENT = "com.example.osmbonuspack"
+
+    // Initialize RoadManager with current context
+    //val roadManager: RoadManager = OSRMRoadManager(context, MY_USER_AGENT)
+    val taclobanGeoPoint = GeoPoint(11.2443, 125.0015)
+    val location = remember { mutableStateOf<GeoPoint?>(taclobanGeoPoint) }
+
+    val lastKnownLocation = remember { mutableStateOf<GeoPoint?>(taclobanGeoPoint) }
+
+    //(roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_BIKE)
+
+    val poiMarkers = FolderOverlay()
+
+    // Coroutine scope for background operations
+    val coroutineScope = rememberCoroutineScope()
+
+    val mapView = remember { mutableStateOf<MapView?>(null) }
+
+    // Use a Box to layer the MapView and FloatingActionButton
+    Box() {
+        // Initialize and set up the MapView
+        AndroidView(
+            factory = { context ->
+                MapView(context).apply {
+                    initializeMap()
+                    mapViewState.value = this
+
+                    // Set up touch listener for handling map clicks
+                    /*setOnTouchListener { _, event ->
+                        if (event.action == MotionEvent.ACTION_UP) {
+                            // Convert screen coordinates to GeoPoint
+                            val clickGeoPoint = projection.fromPixels(event.x.toInt(), event.y.toInt())
+                            // Set the clicked point as the endpoint
+                            endPoint.value = GeoPoint(clickGeoPoint)
+
+                            // Launch a coroutine for network operations
+                            coroutineScope.launch(Dispatchers.IO) {
+                                // Add the clicked point as an endpoint to the waypoints
+                                val waypoints = arrayListOf(taclobanGeoPoint)
+                                endPoint.value?.let {
+                                    waypoints.add(it)
+                                }
+
+                                // Get the road in a background thread
+                                val road = roadManager.getRoad(waypoints)
+
+                                // Switch to the main thread to update the UI
+                                launch(Dispatchers.Main) {
+                                    // Create road overlay and add it to the map
+                                    val roadOverlay = RoadManager.buildRoadOverlay(road)
+                                    overlays.add(roadOverlay)
+                                    invalidate() // Refresh the map
+                                }
+                            }
+                        }
+                        true // Return true to indicate the event was handled
+                    }*/
+                }
+            },
+            modifier = modifier.fillMaxSize()
+        )
+
+        // Function to remove all existing POI markers and overlays
+        // Function to remove all existing POI markers and overlays
+        // Define a function to remove all existing POI markers and overlays
+        fun removeAllPOIMarkers(mapView: MapView?) {
+            // Ensure that the map view is not null
+            if (mapView == null) return
+
+            // Remove all POI markers and overlays from the map
+            mapView.overlays.clear()
+            mapView.invalidate() // Refresh the map
+        }
+
+        fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
+            // Calculate the distance between loc1 and loc2 in meters
+            return loc1.distanceToAsDouble(loc2)
+        }
+
+
+        // FloatingActionButton for the "location" button
+        FloatingActionButton(onClick = {
+            // Access the map view instance
+            val map = mapViewState.value
+
+            Log.e("MainActivity", "Enter Floating Action Button")
+
+            // Log the map instance
+            Log.e("MainActivity", "Map: $map")
+
+            // Access the MyLocationNewOverlay
+            val locationOverlay =
+                map?.overlays?.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
+            if (locationOverlay == null) {
+                // Log a message if MyLocationNewOverlay is null
+                println("MyLocationNewOverlay instance is null")
+                return@FloatingActionButton // Exit the click listener early if locationOverlay is null
+            }
+
+            // If the overlay exists and has a valid location, center the map on the hardcoded location
+            map.controller.setCenter(taclobanGeoPoint)
+            Marker(map).position = taclobanGeoPoint
+
+            // Iterate through the overlays to find the startMarker
+            for (overlay in map.overlays) {
+                if (overlay is Marker) {
+                    // If the Marker overlay is the startMarker you want to change
+                    overlay.position = taclobanGeoPoint
+                    break // Exit the loop once the marker is found and updated
+                }
+            }
+
+            val locationHandler = LocationHandler(context)
+            // Define the callback for location updates
+            locationHandler.callback = object : LocationCallback {
+                // In the callback function (onLocationUpdate)
+                override fun onLocationUpdate(newLocation: GeoPoint) {
+                    // Update the user's location
+                    location.value = newLocation
+
+                    // Remove all existing POI markers and overlays
+                    removeAllPOIMarkers(mapViewState.value)
+
+                    // Now add new POI markers and overlays based on the new location
+                    coroutineScope.launch(Dispatchers.IO) {
+                        val poiProvider = NominatimPOIProvider("OSMBonusPackTutoUserAgent")
+                        val pois = poiProvider.getPOICloseTo(location.value, "Parking", 50, 0.1)
+
+                        withContext(Dispatchers.Main) {
+                            val mapView = mapViewState.value
+                            if (mapView != null) {
+                                // Add new POI markers and overlays
+                                var poiIcon = ContextCompat.getDrawable(
+                                    context,
+                                    R.drawable.marker_poi_default
+                                )
+                                val poiIconBitmap = (poiIcon as BitmapDrawable).bitmap
+
+                                // Define the new width and height for the icon (change these to your desired dimensions)
+                                val newWidth = 20 // e.g., 50 pixels
+                                val newHeight = 30 // e.g., 50 pixels
+
+                                // Resize the bitmap to the desired dimensions
+                                val resizedPoiIconBitmap =
+                                    Bitmap.createScaledBitmap(
+                                        poiIconBitmap,
+                                        newWidth,
+                                        newHeight,
+                                        true
+                                    )
+
+                                // Convert the resized bitmap back to a drawable
+                                poiIcon = BitmapDrawable(context.resources, resizedPoiIconBitmap)
+
+                                for (poi in pois) {
+                                    val poiMarker = Marker(mapView)
+                                    poiMarker.title = poi.mType
+                                    Log.e("MainActivity", "POI type: ${poi.mType}")
+                                    poiMarker.snippet = poi.mDescription
+                                    Log.e(
+                                        "MainActivity",
+                                        "POI Description: ${poi.mDescription}"
+                                    )
+                                    poiMarker.position = poi.mLocation
+                                    Log.e(
+                                        "MainActivity",
+                                        "POI Location: ${poi.mLocation.latitude}, ${poi.mLocation.longitude}"
+                                    )
+                                    poiMarker.icon = poiIcon
+
+                                    poiMarkers.add(poiMarker)
+                                }
+                                // Add POI markers overlay to the map
+                                mapView.overlays.add(poiMarkers)
+                                mapView.invalidate()
+                            }
+                        }
+                    }
+                    // Update the user's location
+                    location.value = newLocation
+
+                    // Calculate the distance from the last known location
+                    lastKnownLocation.value?.let { lastLocation ->
+                        val distance = calculateDistance(lastLocation, newLocation)
+
+                        // Define a threshold distance in meters (e.g., 50 meters)
+                        val thresholdDistance = 5.0 // meters
+
+                        // Animate to the new location if the distance exceeds the threshold
+                        if (distance > thresholdDistance) {
+                            mapViewState.value?.controller?.animateTo(newLocation, 18.0, 2000)
+                        }
+                    }
+
+                    // Update the last known location to the current location
+                    lastKnownLocation.value = newLocation
+                }
+            }
+            locationHandler.startLocationUpdates()
+
+
+            // Log the current map center
+            val currentCenter = map.getMapCenter()
+            Log.e(
+                "MainActivity",
+                "Location: ${currentCenter.latitude}, ${currentCenter.longitude}"
+            )
+        },
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.BottomEnd),
+            content = {
+                // Icon for the FloatingActionButton
+                Icon(
+                    imageVector = Icons.Default.LocationOn, // Choose the appropriate icon
+                    contentDescription = "Show My Location"
+                )
+            })
+    }
+
+
+    mapViewState.value?.let { mapView ->
+        val mapController: IMapController = mapView.controller
+        val startPoint = GeoPoint(48.13, -1.63)
+
+        mapController.setZoom(9.0)
+        mapController.setCenter(startPoint)
+
+        val startMarker = Marker(mapView)
+        startMarker.setPosition(location.value)
+        startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        mapView.overlays.add(startMarker)
+    }
+}
+
+fun MapView.initializeMap() {
+
+    setMultiTouchControls(true)
+    setTileSource(TileSourceFactory.MAPNIK)
+    val startPoint = GeoPoint(12.8797, 121.7740)
+    controller.setCenter(startPoint)
+    controller.setZoom(6.0)
+
+    val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
+    myLocationOverlay.enableMyLocation()
+    myLocationOverlay.enableFollowLocation()
+    overlays.add(myLocationOverlay)
 
     val mapListener = object : MapListener {
         override fun onScroll(event: ScrollEvent?): Boolean {
@@ -224,90 +492,7 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
         }
     }
 
-    val mapView = remember { mutableStateOf<MapView?>(null) }
-
-    // Use a Box to layer the MapView and FloatingActionButton
-    Box() {
-        // Initialize and set up the MapView
-        AndroidView(
-            factory = { context ->
-                MapView(context).apply {
-                    // Enable multi-touch controls
-                    setMultiTouchControls(true)
-                    // Set the tile source to OpenStreetMap Mapnik
-                    setTileSource(TileSourceFactory.MAPNIK)
-
-                    val startPoint = GeoPoint(12.8797, 121.7740)
-                    controller.setCenter(startPoint)
-
-                    controller.setZoom(6.0)
-                    // Create a new MyLocationNewOverlay
-                    val mLocationOverlay =
-                        MyLocationNewOverlay(GpsMyLocationProvider(context), this)
-                    // Enable my location on the overlay
-                    mLocationOverlay.enableMyLocation()
-                    // Optionally, enable following location
-                    mLocationOverlay.enableFollowLocation()
-                    // Add the location overlay to the map overlays list
-                    overlays.add(mLocationOverlay)
-                    // Add map listener if necessary
-                    addMapListener(mapListener)
-
-                    // Store the MapView instance in the state variable
-                    mapView.value = this
-                }
-            }, modifier = Modifier.fillMaxHeight() // Fill the full height of the screen
-        )
-
-        // FloatingActionButton for the "location" button
-        // FloatingActionButton for the "location" button
-        FloatingActionButton(onClick = {
-            // Access the map view instance
-            val map = mapView.value
-
-            // Log the map instance
-            Log.e("MainActivity", "Map: $map")
-
-            if (map == null) {
-                // Log a message if mapView is null
-                println("MapView instance is null")
-                return@FloatingActionButton // Exit the click listener early if map is null
-            }
-
-            // Access the MyLocationNewOverlay
-            val locationOverlay =
-                map.overlays.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
-            if (locationOverlay == null) {
-                // Log a message if MyLocationNewOverlay is null
-                println("MyLocationNewOverlay instance is null")
-                return@FloatingActionButton // Exit the click listener early if locationOverlay is null
-            }
-
-            // If the overlay exists and has a valid location, center the map on the hardcoded location
-            val taclobanGeoPoint = GeoPoint(11.2443, 125.0015)
-            //map.controller.setCenter(taclobanGeoPoint)
-            //map.controller.setZoom(9.0) // Adjust the zoom level as needed
-
-            map.controller.animateTo(taclobanGeoPoint, 15.0, 2000)
-
-            // Log the current map center
-            val currentCenter = map.getMapCenter()
-            Log.e(
-                "MainActivity",
-                "Location: ${currentCenter.latitude}, ${currentCenter.longitude}"
-            )
-        },
-            modifier = Modifier
-                .padding(16.dp)
-                .align(Alignment.BottomEnd), // Align the button to the bottom-right corner
-            content = {
-                // Icon for the FloatingActionButton
-                Icon(
-                    imageVector = Icons.Default.LocationOn, // Choose the appropriate icon
-                    contentDescription = "Show My Location"
-                )
-            })
-    }
+    addMapListener(mapListener)
 }
 
 @Composable
