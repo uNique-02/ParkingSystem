@@ -52,6 +52,7 @@ class LocationHandler(private val context: Context) {
 
     // Function to start location updates
     fun startLocationUpdates() {
+        Log.e("LocationHandler", "Starting location updates KIM")
         // Check for location permissions
         val hasFineLocationPermission = ContextCompat.checkSelfPermission(
             context, "android.permission.ACCESS_FINE_LOCATION"
@@ -65,7 +66,7 @@ class LocationHandler(private val context: Context) {
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
                 10000, // Minimum time interval between updates in milliseconds
-                10f, // Minimum distance between updates in meters
+                100f, // Minimum distance between updates in meters
                 locationListener
             )
         } else {
