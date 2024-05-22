@@ -1,70 +1,33 @@
-package com.example.parkingsystem
+package com.example.parkingsystem.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.parkingsystem.AppViewModelProvider
+import com.example.parkingsystem.ParkingAppScreen
+import com.example.parkingsystem.viewmodel.LoginViewModel
 
 @Composable
 fun LoginScreen(
-    onLogin: (String, String) -> Unit,
     navController: NavController
 ) {
-    // Define state variables for username and password inputs
-    val fName = remember { mutableStateOf("") }
-    val lName = remember { mutableStateOf("") }
-    val address = remember { mutableStateOf("") }
-    val pNumber = remember { mutableStateOf("") }
+    val viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val username by viewModel.username.collectAsState()
+    val password by viewModel.password.collectAsState()
+    val isUsernameValid by viewModel.isUsernameValid.collectAsState()
+    val isPasswordValid by viewModel.isPasswordValid.collectAsState()
 
-    val username = remember { mutableStateOf("") }
-    val password = remember { mutableStateOf("") }
-
-    val isuNameValid = remember {
-        mutableStateOf(false)
-    }
-
-    val isPasswordValid = remember {
-        mutableStateOf(false)
-    }
-
-    // Create the login screen layout
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -74,29 +37,25 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             UsernameField(
-                value = username.value,
-                onChange = { value -> username.value = value
-                    isuNameValid.value = value.isNotEmpty() },
+                value = username,
+                onChange = viewModel::onUsernameChange,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
             PasswordField(
-                value = password.value,
-                onChange = { value -> password.value = value
-                    isPasswordValid.value = value.isNotEmpty() },
-                submit = { /*TODO*/ },
-                modifier = Modifier.padding(bottom = 16.dp))
+                value = password,
+                onChange = viewModel::onPasswordChange,
+                submit = { viewModel.login() },
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
-            // Login button
             Button(
                 onClick = {
-                    // Handle the login action
-                    onLogin(username.value, password.value)
+                    viewModel.login()
                     navController.navigate(ParkingAppScreen.MapView.name)
                 },
-                enabled = isuNameValid.value && isPasswordValid.value
+                enabled = isUsernameValid && isPasswordValid
             ) {
                 Text("Login")
             }
@@ -115,7 +74,6 @@ fun PasswordField(
 ) {
     var isPasswordVisible by remember { mutableStateOf(false) }
 
-    // Leading icon for the password field
     val leadingIcon = @Composable {
         Icon(
             Icons.Default.Key,
@@ -124,7 +82,6 @@ fun PasswordField(
         )
     }
 
-    // Trailing icon for toggling password visibility
     val trailingIcon = @Composable {
         IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
             Icon(
@@ -135,7 +92,6 @@ fun PasswordField(
         }
     }
 
-    // Password input field
     TextField(
         value = value,
         onValueChange = onChange,
@@ -146,16 +102,13 @@ fun PasswordField(
             imeAction = ImeAction.Done,
             keyboardType = KeyboardType.Password
         ),
-        keyboardActions = KeyboardActions(
-            onDone = { submit() }
-        ),
+        keyboardActions = KeyboardActions(onDone = { submit() }),
         placeholder = { Text(placeholder) },
         label = { Text(label) },
         singleLine = true,
         visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation()
     )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,8 +119,8 @@ fun UsernameField(
     label: String = "Username",
     placeholder: String = "Enter your username"
 ) {
-
     val focusManager = LocalFocusManager.current
+
     val leadingIcon = @Composable {
         Icon(
             Icons.Default.Person,
@@ -182,9 +135,7 @@ fun UsernameField(
         modifier = modifier,
         leadingIcon = leadingIcon,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-        keyboardActions = KeyboardActions(
-            onNext = { focusManager.moveFocus(FocusDirection.Down) }
-        ),
+        keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
         placeholder = { Text(placeholder) },
         label = { Text(label) },
         singleLine = true,

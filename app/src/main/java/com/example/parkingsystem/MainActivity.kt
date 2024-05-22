@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.parkingsystem.data.AppContainer
+import com.example.parkingsystem.data.AppDataContainer
 import com.example.parkingsystem.ui.theme.ParkingSystemTheme
 import org.osmdroid.config.Configuration
 
@@ -21,9 +23,9 @@ class MainActivity : ComponentActivity() {
 
     private val REQUEST_LOCATION_PERMISSION = 1
     //val locationManager = this@MainActivity.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         checkLocationPermission() // Check and request location permission if necessary
 
         Configuration.getInstance().load(
@@ -78,12 +80,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
-    @Preview(showBackground = true, showSystemUi = true)
-    @Composable
-    fun ParkingAreaListPreview() {
-        ParkingSystemTheme {
-            ParkingAreaList()
-        }
-    }
 }

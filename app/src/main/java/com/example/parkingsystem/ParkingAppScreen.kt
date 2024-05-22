@@ -56,6 +56,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.parkingsystem.ui.LoginScreen
+import com.example.parkingsystem.view.RegisterScreen
 import kotlinx.coroutines.launch
 
 
@@ -85,36 +87,25 @@ fun ParkingAppBar(
 }
 
 @Composable
-fun ParkingApp(
-    navController: NavHostController = rememberNavController(),
-) {
+fun ParkingApp() {
+    val navController = rememberNavController()
 
-    NavHost(
-        navController = navController,
-        startDestination = ParkingAppScreen.MapView.name
-    ) {
-        composable(route = ParkingAppScreen.WelcomePage.name) {
-            ScaffoldWrapper(
-                canNavigateBack = false,
-                navigateUp = { /* Implement back navigation */ }) {
+    NavHost(navController = navController, startDestination = ParkingAppScreen.MapView.name) {
+        composable(ParkingAppScreen.WelcomePage.name) {
+            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
                 WelcomePage(navController = navController)
             }
         }
-
-        composable(route = ParkingAppScreen.Login.name) {
-            ScaffoldWrapper(
-                canNavigateBack = false,
-                navigateUp = { /* Implement back navigation */ }) {
-                LoginScreen(onLogin = { _, _ -> }, navController = navController)
+        composable(ParkingAppScreen.Login.name) {
+            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
+                LoginScreen(navController = navController)
             }
         }
-
-        composable(route = ParkingAppScreen.Register.name) {
-            RegisterScreen(onLogin = { _, _ -> }, navController = navController)
+        composable(ParkingAppScreen.Register.name) {
+            RegisterScreen(navController = navController)
         }
-
-        composable(route = ParkingAppScreen.MapView.name) {
-            ParkingAreaList()
+        composable(ParkingAppScreen.MapView.name) {
+            ParkingAreaList(navController = navController)
         }
     }
 }
