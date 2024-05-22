@@ -1,4 +1,4 @@
-As a partial fulfillment for the requirement in CMSC 151
+As a partial fulfillment for the requirement in CMSC 152
 
 Parking Space Finder App
 
