@@ -27,6 +27,14 @@ class ParkingSpaceApplication : Application() {
         fun getAppContainer(context: Context): AppContainer {
             return (context.applicationContext as ParkingSpaceApplication).container
         }
+
+        fun getIsLoggedIn(context: Context): Boolean {
+            return SharedPreferencesUtils.getIsLoggedIn(context)
+        }
+
+        fun setIsLoggedIn(context: Context, loggedIn: Boolean) {
+            SharedPreferencesUtils.setIsLoggedIn(context, loggedIn)
+        }
     }
 
 }

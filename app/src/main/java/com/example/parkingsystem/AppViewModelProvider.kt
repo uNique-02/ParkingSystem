@@ -1,18 +1,17 @@
 package com.example.parkingsystem
 
 import android.app.Application
-import android.util.Log
+import android.content.Context
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.parkingsystem.data.AppContainer
-import com.example.parkingsystem.data.AppDataContainer
+import com.example.parkingsystem.model.ProfileViewModel
 import com.example.parkingsystem.viewmodel.LoginViewModel
 import com.example.parkingsystem.viewmodel.RegisterViewModel
 
 object AppViewModelProvider {
-    val Factory = viewModelFactory {
+    fun provideFactory(context: Context) = viewModelFactory {
         // Initializer for RegisterViewModel
         initializer {
             val application = this.parkingSpaceApplication()
@@ -22,7 +21,12 @@ object AppViewModelProvider {
         // Initializer for LoginViewModel
         initializer {
             val application = this.parkingSpaceApplication()
-            LoginViewModel(application.container.usersRepository)
+            LoginViewModel(application.container.usersRepository, context)
+        }
+
+        initializer {
+            val application = this.parkingSpaceApplication()
+            ProfileViewModel(application.container.usersRepository, context)
         }
 
         // Add other initializers if needed

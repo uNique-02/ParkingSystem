@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -37,7 +38,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.parkingsystem.AppViewModelProvider
-import com.example.parkingsystem.ParkingAppScreen
 import com.example.parkingsystem.viewmodel.LoginViewModel
 import com.example.parkingsystem.viewmodel.RegisterViewModel
 
@@ -45,8 +45,8 @@ import com.example.parkingsystem.viewmodel.RegisterViewModel
 fun RegisterScreen(
     navController: NavController,
 ) {
-    val viewModel: RegisterViewModel = viewModel(factory = AppViewModelProvider.Factory)
-    val loginViewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val viewModel: RegisterViewModel = viewModel(factory = AppViewModelProvider.provideFactory(LocalContext.current))
+    val loginViewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.provideFactory(LocalContext.current))
     val fName by viewModel.fName.collectAsState()
     val lName by viewModel.lName.collectAsState()
     val address by viewModel.address.collectAsState()
@@ -139,8 +139,7 @@ fun RegisterScreen(
             Button(
                 onClick = {
                     viewModel.register()
-                    loginViewModel.login()
-                    navController.navigate(ParkingAppScreen.MapView.name)
+                    navController.navigate(ParkingAppScreen.Login.name)
                 },
                 enabled = isPhoneNumberValid && isfNameValid && islNameValid && isPasswordStrong
             ) {

@@ -9,29 +9,36 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.parkingsystem.AppViewModelProvider
-import com.example.parkingsystem.ParkingAppScreen
+import com.example.parkingsystem.view.ParkingAppScreen
 import com.example.parkingsystem.viewmodel.LoginViewModel
 
 @Composable
 fun LoginScreen(
     navController: NavController
 ) {
-    val viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.provideFactory(
+        LocalContext.current))
     val username by viewModel.username.collectAsState()
     val password by viewModel.password.collectAsState()
     val isUsernameValid by viewModel.isUsernameValid.collectAsState()
     val isPasswordValid by viewModel.isPasswordValid.collectAsState()
 
+
+    var errorMessage by remember { mutableStateOf("") }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
+
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.Center,
@@ -52,12 +59,29 @@ fun LoginScreen(
 
             Button(
                 onClick = {
-                    viewModel.login()
-                    navController.navigate(ParkingAppScreen.MapView.name)
+                    viewModel.checkUserCredentials(username, password) { isValid ->
+                        if (isValid) {
+                            viewModel.login()
+                            navController.navigate(ParkingAppScreen.MapView.name)
+                        } else {
+                            errorMessage = "Invalid username or password"
+                        }
+                    }
                 },
                 enabled = isUsernameValid && isPasswordValid
             ) {
                 Text("Login")
+            }
+            // Show error message if exists
+            if (errorMessage.isNotEmpty()) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 10.sp,
+                    modifier = Modifier
+                        .padding(top = 4.dp, start = 10.dp)
+                        .width(50.dp)
+                )
             }
         }
     }

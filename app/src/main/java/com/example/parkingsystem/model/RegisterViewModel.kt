@@ -1,12 +1,9 @@
 package com.example.parkingsystem.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.parkingsystem.data.OfflineUsersRepository
-import com.example.parkingsystem.data.ParkingSystemDatabase
-import com.example.parkingsystem.data.User
-import com.example.parkingsystem.data.UsersRepository
+import com.example.parkingsystem.data.user.User
+import com.example.parkingsystem.data.user.UsersRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

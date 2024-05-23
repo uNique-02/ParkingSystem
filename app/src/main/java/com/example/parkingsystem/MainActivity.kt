@@ -9,14 +9,11 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.parkingsystem.data.AppContainer
-import com.example.parkingsystem.data.AppDataContainer
 import com.example.parkingsystem.ui.theme.ParkingSystemTheme
+import com.example.parkingsystem.view.ParkingApp
 import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {

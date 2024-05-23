@@ -1,4 +1,4 @@
-package com.example.parkingsystem
+package com.example.parkingsystem.view
 
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
@@ -17,11 +17,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.example.parkingsystem.LocationCallback
+import com.example.parkingsystem.LocationHandler
+import com.example.parkingsystem.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.osmdroid.api.IMapController
 import org.osmdroid.bonuspack.location.NominatimPOIProvider
 import org.osmdroid.bonuspack.routing.OSRMRoadManager
 import org.osmdroid.bonuspack.routing.Road
@@ -232,7 +234,7 @@ fun updateMapViewLocation(
 
     lastKnownLocation.value?.let { lastLocation ->
         val distance = calculateDistance(lastLocation, newLocation)
-        if (distance > 5.0 && !hasZoomedToUserLocation) {
+        if (!hasZoomedToUserLocation) {
             mapView.controller.animateTo(newLocation, 18.0, 2000)
             hasZoomedToUserLocation.not()
         }

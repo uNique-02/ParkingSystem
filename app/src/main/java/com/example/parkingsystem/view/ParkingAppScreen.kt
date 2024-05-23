@@ -1,5 +1,6 @@
-package com.example.parkingsystem
+package com.example.parkingsystem.view
 
+import ProfileScreen
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -35,6 +35,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,23 +47,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.parkingsystem.AppViewModelProvider
+import com.example.parkingsystem.R
 import com.example.parkingsystem.ui.LoginScreen
-import com.example.parkingsystem.view.RegisterScreen
+import com.example.parkingsystem.viewmodel.LoginViewModel
 import kotlinx.coroutines.launch
 
 
 enum class ParkingAppScreen() {
-    WelcomePage, Login, Register, MapView
+    WelcomePage, Login, Register, MapView, Profile
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,12 +95,16 @@ fun ParkingApp() {
 
     NavHost(navController = navController, startDestination = ParkingAppScreen.MapView.name) {
         composable(ParkingAppScreen.WelcomePage.name) {
-            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
+            ScaffoldWrapper(
+                canNavigateBack = false,
+                navigateUp = { /* Implement back navigation */ }) {
                 WelcomePage(navController = navController)
             }
         }
         composable(ParkingAppScreen.Login.name) {
-            ScaffoldWrapper(canNavigateBack = false, navigateUp = { /* Implement back navigation */ }) {
+            ScaffoldWrapper(
+                canNavigateBack = false,
+                navigateUp = { /* Implement back navigation */ }) {
                 LoginScreen(navController = navController)
             }
         }
@@ -106,6 +113,9 @@ fun ParkingApp() {
         }
         composable(ParkingAppScreen.MapView.name) {
             ParkingAreaList(navController = navController)
+        }
+        composable(ParkingAppScreen.Profile.name) {
+            ProfileScreen(onBackPressed = { navController.popBackStack() })
         }
     }
 }
@@ -139,6 +149,13 @@ fun ParkingAreaList(
 ) {
     // Define the state of the search text
     var searchText by remember { mutableStateOf(" ") }
+
+    val viewModel: LoginViewModel = viewModel(
+        factory = AppViewModelProvider.provideFactory(
+            LocalContext.current
+        )
+    )
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
     //Remember Clicked item state
     var selectedItemIndex by rememberSaveable {
@@ -174,33 +191,39 @@ fun ParkingAreaList(
                     val scope = rememberCoroutineScope()
 
                     ///List of Navigation Items that will be clicked
-                    val items = listOf(
-                        NavigationItems(
-                            title = "Login",
-                            selectedIcon = Icons.Filled.Home,
-                            unselectedIcon = Icons.Outlined.Home
-                        ),
-                        NavigationItems(
-                            title = "Register",
-                            selectedIcon = Icons.Filled.Info,
-                            unselectedIcon = Icons.Outlined.Info
-                        ),
-                        NavigationItems(
-                            title = "Edit",
-                            selectedIcon = Icons.Filled.Edit,
-                            unselectedIcon = Icons.Outlined.Edit,
-                            badgeCount = 105
-                        ),
-                        NavigationItems(
-                            title = "Settings",
-                            selectedIcon = Icons.Filled.Settings,
-                            unselectedIcon = Icons.Outlined.Settings
+                    val items = if (isLoggedIn) {
+                        listOf(
+                            NavigationItems(
+                                title = "Profile",
+                                selectedIcon = Icons.Filled.Person,
+                                unselectedIcon = Icons.Outlined.Person
+                            ),
+                            NavigationItems(
+                                title = "Logout",
+                                selectedIcon = Icons.Filled.ExitToApp,
+                                unselectedIcon = Icons.Outlined.ExitToApp
+                            ),
                         )
-                    )
+                    } else {
+                        listOf(
+                            NavigationItems(
+                                title = "Login",
+                                selectedIcon = Icons.Filled.Home,
+                                unselectedIcon = Icons.Outlined.Home
+                            ),
+                            NavigationItems(
+                                title = "Register",
+                                selectedIcon = Icons.Filled.Info,
+                                unselectedIcon = Icons.Outlined.Info
+                            ),
+                        )
+                    }
 
-                    Box () {
+                    Box() {
                         ModalNavigationDrawer(
-                            modifier = Modifier.height(300.dp).width(200.dp),
+                            modifier = Modifier
+                                .height(300.dp)
+                                .width(200.dp),
                             drawerState = drawerState,
                             drawerContent = {
                                 ModalDrawerSheet(drawerContentColor = Color.Gray) {
@@ -217,12 +240,28 @@ fun ParkingAreaList(
                                                 //  navController.navigate(item.route)
                                                 selectedItemIndex = index
                                                 scope.launch {
-                                                    Log.e("Clicked", "Selected: $selectedItemIndex")
-                                                    if (selectedItemIndex==0){
-                                                        navController.navigate(ParkingAppScreen.Login.name)
-                                                    }
-                                                    else if (selectedItemIndex==1){
-                                                        navController.navigate(ParkingAppScreen.Register.name)
+                                                    if (!isLoggedIn) {
+                                                        Log.e(
+                                                            "Clicked",
+                                                            "Selected: $selectedItemIndex"
+                                                        )
+                                                        if (selectedItemIndex == 0) {
+                                                            navController.navigate(ParkingAppScreen.Login.name)
+                                                        } else if (selectedItemIndex == 1) {
+                                                            navController.navigate(ParkingAppScreen.Register.name)
+                                                        }
+                                                    } else {
+                                                        Log.e(
+                                                            "Clicked",
+                                                            "Selected: $selectedItemIndex"
+                                                        )
+                                                        if (selectedItemIndex == 0) {
+                                                            navController.navigate(ParkingAppScreen.Profile.name)
+                                                            Log.e("Login", "Entered profile")
+                                                        } else if (selectedItemIndex == 1) {
+                                                            viewModel.logout()
+                                                            navController.navigate(ParkingAppScreen.MapView.name)
+                                                        }
                                                     }
                                                 }
                                             },
