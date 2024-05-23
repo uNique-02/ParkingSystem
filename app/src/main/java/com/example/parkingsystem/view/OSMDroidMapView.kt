@@ -113,26 +113,24 @@ fun onLocationButtonClick(
     coroutineScope: CoroutineScope,
     hasZoomedToUserLocation: Boolean
 ) {
-    val map = mapViewState.value
-    val locationOverlay = map?.overlays?.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
+    val map = mapViewState.value ?: return
+    val locationOverlay = map.overlays.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
     if (locationOverlay == null) {
-        println("MyLocationNewOverlay instance is null")
+        Log.e("onLocationButtonClick", "MyLocationNewOverlay instance is null")
         return
     }
 
-    map.overlays.filterIsInstance<Marker>().firstOrNull()?.position = GeoPoint(11.2443, 125.0015)
-    val locationHandler = LocationHandler(context).apply {
-        callback = object : LocationCallback {
-            override fun onLocationUpdate(newLocation: GeoPoint) {
-                location.value = newLocation
-                removeAllPOIMarkers(mapViewState.value)
-                addPOIMarkers(context, mapViewState, location, poiMarkers, coroutineScope)
-                updateMapViewLocation(mapViewState, location, lastKnownLocation, hasZoomedToUserLocation)
-            }
-        }
+    val userLocation = locationOverlay.myLocation
+    if (userLocation != null) {
+        location.value = userLocation
+        removeAllPOIMarkers(mapViewState.value)
+        addPOIMarkers(context, mapViewState, location, poiMarkers, coroutineScope)
+        updateMapViewLocation(mapViewState, location, lastKnownLocation, hasZoomedToUserLocation)
+        map.controller.animateTo(userLocation, 18.0, 2000)
+        Log.i("onLocationButtonClick", "Zooming to user location: ${userLocation.latitude}, ${userLocation.longitude}")
+    } else {
+        Log.e("onLocationButtonClick", "User location is null")
     }
-    locationHandler.startLocationUpdates()
-    Log.e("MainActivity", "Location: ${map.getMapCenter().latitude}, ${map.getMapCenter().longitude}")
 }
 
 fun removeAllPOIMarkers(mapView: MapView?) {
@@ -144,26 +142,38 @@ fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
     return loc1.distanceToAsDouble(loc2)
 }
 
-// Clear existing overlays before adding new ones
 fun clearRouteOverlays(mapView: MapView) {
     (mapView.overlays as? CopyOnWriteArrayList<Overlay>)?.removeIf { it is Polyline }
         ?: run {
-           mapView.overlays.filterNot { it is Polyline } as MutableList<Overlay>
+            mapView.overlays.filterNot { it is Polyline } as MutableList<Overlay>
         }
 }
-
+fun calculateDistanceBetweenPoints(loc1: GeoPoint, loc2: GeoPoint): Double {
+    val result = FloatArray(1)
+    android.location.Location.distanceBetween(
+        loc1.latitude,
+        loc1.longitude,
+        loc2.latitude,
+        loc2.longitude,
+        result
+    )
+    return result[0].toDouble()
+}
 
 fun addPOIMarkers(
     context: android.content.Context,
     mapViewState: MutableState<MapView?>,
     location: MutableState<GeoPoint?>,
     poiMarkers: FolderOverlay,
-    coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope,
+    maxDistanceMeters: Double = 10000.0 // Maximum distance in meters (10 kilometers)
 ) {
     val roadManager = OSRMRoadManager(context, "OSMBonusPackTutoUserAgent")
     coroutineScope.launch(Dispatchers.IO) {
         val poiProvider = NominatimPOIProvider("OSMBonusPackTutoUserAgent")
-        val pois = poiProvider.getPOICloseTo(location.value, "Parking", 10, 0.1)
+        val maxDistanceDegrees = metersToDegrees(maxDistanceMeters, location.value?.latitude ?: 0.0)
+        val pois = poiProvider.getPOICloseTo(location.value, "Parking", 100, maxDistanceDegrees)
+
         withContext(Dispatchers.Main) {
             mapViewState.value?.let { mapView ->
                 val poiIcon = ContextCompat.getDrawable(context, R.drawable.marker_poi_default) as BitmapDrawable
@@ -172,11 +182,17 @@ fun addPOIMarkers(
                     Bitmap.createScaledBitmap(poiIcon.bitmap, 20, 30, true)
                 )
 
-                pois.forEach { poi ->
+                // Calculate distances and create a map of POI to distance
+                val distances = pois.associateWith { calculateDistanceBetweenPoints(it.mLocation, location.value!!) }
+
+                // Sort POIs based on distance from user's location
+                val sortedPOIs = pois.sortedBy { distances[it]}.take(100)
+
+                sortedPOIs.forEach { poi ->
                     val poiMarker = Marker(mapView)
                     poiMarker.title = poi.mType
                     poiMarker.snippet = poi.mDescription
-                    poiMarker.subDescription = "Distance: " + String.format("%.2f", (poi.mLocation.distanceToAsDouble(mapView.mapCenter)) / 1000) + " km"
+                    poiMarker.subDescription = "Distance: " + String.format("%.2f", (distances[poi] ?: 0.0) / 1000) + " km"
                     poiMarker.position = poi.mLocation
                     poiMarker.icon = resizedPoiIcon
 
@@ -223,6 +239,22 @@ fun addPOIMarkers(
     }
 }
 
+fun metersToDegrees(meters: Double, latitude: Double): Double {
+    // Convert latitude from degrees to radians
+    val latRadians = Math.toRadians(latitude)
+
+    // One degree of latitude is approximately 111 kilometers
+    // (at the equator; it decreases as you move towards the poles)
+    val metersPerDegreeLat = 111000.0
+
+    // Calculate the equivalent distance in degrees
+    val degrees = meters / (metersPerDegreeLat * Math.cos(latRadians))
+
+    return degrees
+}
+
+
+
 fun updateMapViewLocation(
     mapViewState: MutableState<MapView?>,
     location: MutableState<GeoPoint?>,
@@ -234,7 +266,7 @@ fun updateMapViewLocation(
 
     lastKnownLocation.value?.let { lastLocation ->
         val distance = calculateDistance(lastLocation, newLocation)
-        if (!hasZoomedToUserLocation) {
+        if (distance > 5.0 && !hasZoomedToUserLocation) {
             mapView.controller.animateTo(newLocation, 18.0, 2000)
             hasZoomedToUserLocation.not()
         }
