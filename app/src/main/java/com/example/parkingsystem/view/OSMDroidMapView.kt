@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.parkingsystem.LocationCallback
 import com.example.parkingsystem.LocationHandler
@@ -53,6 +57,29 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
     val coroutineScope = rememberCoroutineScope()
     var hasZoomedToUserLocation by remember { mutableStateOf(false) }
 
+    val locationHandler = remember {
+        LocationHandler(context).apply {
+            callback = object : LocationCallback {
+                override fun onLocationUpdate(newLocation: GeoPoint) {
+                    location.value = newLocation
+                    if (mapViewState.value != null) {
+                        coroutineScope.launch {
+                            updateMapViewLocation(mapViewState, location, lastKnownLocation, hasZoomedToUserLocation)
+                            removeAllPOIMarkers(mapViewState.value)
+                            addPOIMarkers(context, mapViewState, location, poiMarkers, coroutineScope)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        locationHandler.startLocationUpdates()
+        onDispose {
+            locationHandler.stopLocationUpdates()
+        }
+    }
 
     Box {
         AndroidView(
@@ -66,8 +93,10 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
         )
 
         FloatingActionButton(
-            onClick = { hasZoomedToUserLocation = false // Reset zoom flag
-                onLocationButtonClick(context, mapViewState, location, lastKnownLocation, poiMarkers, coroutineScope, hasZoomedToUserLocation) },
+            onClick = {
+                hasZoomedToUserLocation = false // Reset zoom flag
+                onLocationButtonClick(context, mapViewState, location, lastKnownLocation, poiMarkers, coroutineScope, hasZoomedToUserLocation)
+            },
             modifier = Modifier.padding(16.dp).align(Alignment.BottomEnd),
             content = {
                 Icon(
@@ -79,7 +108,6 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
     }
 
     mapViewState.value?.let { mapView ->
-
         val startMarker = Marker(mapView)
         startMarker.setPosition(location.value)
         startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
@@ -148,6 +176,7 @@ fun clearRouteOverlays(mapView: MapView) {
             mapView.overlays.filterNot { it is Polyline } as MutableList<Overlay>
         }
 }
+
 fun calculateDistanceBetweenPoints(loc1: GeoPoint, loc2: GeoPoint): Double {
     val result = FloatArray(1)
     android.location.Location.distanceBetween(
@@ -159,7 +188,6 @@ fun calculateDistanceBetweenPoints(loc1: GeoPoint, loc2: GeoPoint): Double {
     )
     return result[0].toDouble()
 }
-
 fun addPOIMarkers(
     context: android.content.Context,
     mapViewState: MutableState<MapView?>,
@@ -172,7 +200,7 @@ fun addPOIMarkers(
     coroutineScope.launch(Dispatchers.IO) {
         val poiProvider = NominatimPOIProvider("OSMBonusPackTutoUserAgent")
         val maxDistanceDegrees = metersToDegrees(maxDistanceMeters, location.value?.latitude ?: 0.0)
-        val pois = poiProvider.getPOICloseTo(location.value, "Parking", 100, maxDistanceDegrees)
+        val pois = poiProvider.getPOICloseTo(location.value, "Parking", 50, maxDistanceDegrees)
 
         withContext(Dispatchers.Main) {
             mapViewState.value?.let { mapView ->
@@ -186,8 +214,9 @@ fun addPOIMarkers(
                 val distances = pois.associateWith { calculateDistanceBetweenPoints(it.mLocation, location.value!!) }
 
                 // Sort POIs based on distance from user's location
-                val sortedPOIs = pois.sortedBy { distances[it]}.take(100)
+                val sortedPOIs = pois.sortedBy { distances[it] }.take(50)
 
+                poiMarkers.items.clear()
                 sortedPOIs.forEach { poi ->
                     val poiMarker = Marker(mapView)
                     poiMarker.title = poi.mType
@@ -253,8 +282,6 @@ fun metersToDegrees(meters: Double, latitude: Double): Double {
     return degrees
 }
 
-
-
 fun updateMapViewLocation(
     mapViewState: MutableState<MapView?>,
     location: MutableState<GeoPoint?>,
@@ -285,4 +312,3 @@ fun ParkingAreaItem(title: String, price: String) {
         Text(text = price, modifier = Modifier.weight(0.3f))
     }
 }
-
