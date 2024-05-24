@@ -1,6 +1,7 @@
 package com.example.parkingsystem.view
 
 import ProfileScreen
+import SharedPreferencesUtils
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -159,6 +160,7 @@ fun ParkingAreaList(
     // Define the state of the search text
     var searchText by remember { mutableStateOf(" ") }
 
+    var current = SharedPreferencesUtils.getCurrentUser(LocalContext.current)?.fName
     val viewModel: LoginViewModel = viewModel(
         factory = AppViewModelProvider.provideFactory(
             LocalContext.current
@@ -290,7 +292,12 @@ fun ParkingAreaList(
                                                 contentScale = ContentScale.Crop
                                             )
                                             Spacer(modifier = Modifier.height(8.dp))
-                                            Text(text = "Welcome back, Kim")
+                                            if(current!=null){
+                                                Text(text = "Welcome back " + current.toString())
+                                            }else{
+                                                Text(text = "Welcome back " + SharedPreferencesUtils.getCurrentBusinessUser(LocalContext.current)?.businessUsername ?: "")
+                                            }
+
                                         }
                                     }
 
