@@ -1,5 +1,6 @@
 package com.example.parkingsystem.view
 
+import android.app.Dialog
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.os.AsyncTask
@@ -9,17 +10,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.parkingsystem.LocationCallback
 import com.example.parkingsystem.LocationHandler
@@ -30,8 +25,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.osmdroid.bonuspack.location.NominatimPOIProvider
 import org.osmdroid.bonuspack.routing.OSRMRoadManager
-import org.osmdroid.bonuspack.routing.Road
-import org.osmdroid.bonuspack.routing.RoadManager
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
@@ -45,6 +38,21 @@ import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.concurrent.CopyOnWriteArrayList
+import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import org.osmdroid.bonuspack.routing.Road
+import org.osmdroid.bonuspack.routing.RoadManager
+import android.content.Context
+import android.view.LayoutInflater
+import android.widget.TextView
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import org.osmdroid.bonuspack.location.POI
+import kotlin.collections.ArrayList
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 
 @Composable
 fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
@@ -97,7 +105,9 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
                 hasZoomedToUserLocation = false // Reset zoom flag
                 onLocationButtonClick(context, mapViewState, location, lastKnownLocation, poiMarkers, coroutineScope, hasZoomedToUserLocation)
             },
-            modifier = Modifier.padding(16.dp).align(Alignment.BottomEnd),
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.BottomEnd),
             content = {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
@@ -226,12 +236,8 @@ fun addPOIMarkers(
                     poiMarker.icon = resizedPoiIcon
 
                     poiMarker.setOnMarkerClickListener { marker, mapView ->
-                        // Toggle description visibility
-                        if (marker.isInfoWindowShown) {
-                            marker.closeInfoWindow()
-                        } else {
-                            marker.showInfoWindow()
-                        }
+                        // Show a bottom sheet dialog with POI details
+                        showPOIBottomSheetDialog(context, poi, distances[poi] ?: 0.0)
 
                         // Perform route calculation in a background thread
                         AsyncTask.execute {
@@ -265,6 +271,26 @@ fun addPOIMarkers(
                 mapView.invalidate()
             }
         }
+    }
+}
+
+private var bottomSheetDialog: BottomSheetDialog? = null
+fun showPOIBottomSheetDialog(context: Context, poi: POI, distance: Double) {
+
+    if (bottomSheetDialog == null || bottomSheetDialog?.isShowing == false) {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.bottom_sheet_poi, null)
+        bottomSheetDialog = BottomSheetDialog(context)
+        bottomSheetDialog?.setContentView(dialogView)
+
+        val titleTextView = dialogView.findViewById<TextView>(R.id.poi_title)
+        val descriptionTextView = dialogView.findViewById<TextView>(R.id.poi_description)
+        val distanceTextView = dialogView.findViewById<TextView>(R.id.poi_distance)
+
+        titleTextView.text = poi.mType
+        descriptionTextView.text = poi.mDescription
+        distanceTextView.text = String.format("Distance: %.2f km", distance / 1000)
+
+        bottomSheetDialog?.show()
     }
 }
 
