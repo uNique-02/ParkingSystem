@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.parkingsystem.data.business.businessUser
 import com.example.parkingsystem.data.parkingspace.ParkingspaceRepository
+import com.example.parkingsystem.data.parkingspace.parkingspace
 import com.example.parkingsystem.data.user.User
 import com.example.parkingsystem.data.user.UsersRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,6 +70,12 @@ class AddParkingSpaceViewModel(private val repository: ParkingspaceRepository, p
 
     fun setCapacity(capacity: Int) {
         _capacity.value = capacity
+    }
+
+    fun addParkingSpace(parkingspace: parkingspace) {
+        viewModelScope.launch {
+            repository.insertParkingspace(parkingspace)
+        }
     }
 
 

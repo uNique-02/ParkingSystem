@@ -12,10 +12,13 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.example.parkingsystem.AppViewModelProvider
 import com.example.parkingsystem.data.parkingspace.ParkingspaceRepository
 import com.example.parkingsystem.data.parkingspace.parkingspace
@@ -24,7 +27,7 @@ import com.example.parkingsystem.model.ProfileViewModel
 
 @Composable
 fun AddParkingSpaceScreen(
-
+    navController: NavController
 ) {
     val viewModel: AddParkingSpaceViewModel = viewModel(
         factory = AppViewModelProvider.provideFactory(
@@ -71,7 +74,7 @@ fun AddParkingSpaceScreen(
                 )
                 viewModel.addParkingSpace(parkingSpace)
             },
-            modifier = Modifier.align(Alignment.End)
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
             Text("Add Parking Space")
         }

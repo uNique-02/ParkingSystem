@@ -43,10 +43,10 @@ class ProfileViewModel(private val repository: UsersRepository, private val cont
                 _pNumber.value = userType.user.pNumber
             }
             is UserType.BusinessUser -> {
-                Log.e("ProfileViewModel", "updateProfileFields: " + userType.businessUser.businessName)
-                _name.value = userType.businessUser.businessName
-                _address.value = userType.businessUser.businessAddress
-                _pNumber.value = userType.businessUser.businessNumber
+                Log.e("ProfileViewModel", "updateProfileFields: " + userType.businessUser?.businessName)
+                _name.value = userType.businessUser?.businessName ?: ""
+                _address.value = userType.businessUser?.businessAddress ?: ""
+                _pNumber.value = userType.businessUser?.businessNumber ?: ""
             }
             else -> {
                 _name.value = ""
@@ -69,6 +69,7 @@ class ProfileViewModel(private val repository: UsersRepository, private val cont
             businessUser != null -> {
                 Log.d("ProfileViewModel", "Loaded business user from preferences: ${businessUser.businessName}")
                 UserType.BusinessUser(businessUser)
+
             }
             else -> {
                 Log.d("ProfileViewModel", "No user found in preferences")

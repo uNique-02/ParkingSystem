@@ -32,7 +32,7 @@ object AppViewModelProvider {
 
         initializer {
             val application = this.parkingSpaceApplication()
-            AddParkingSpaceViewModel(application.container.usersRepository, context)
+            AddParkingSpaceViewModel(application.container.parkingspaceRepository, context)
         }
 
         // Add other initializers if needed

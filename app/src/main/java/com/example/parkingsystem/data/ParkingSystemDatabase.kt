@@ -11,7 +11,7 @@ import com.example.parkingsystem.data.parkingspace.parkingspace
 import com.example.parkingsystem.data.user.User
 import com.example.parkingsystem.data.user.UserDao
 
-@Database(entities = [User::class, businessUser::class, parkingspace::class], version = 3, exportSchema = false)
+@Database(entities = [User::class, businessUser::class, parkingspace::class], version = 4, exportSchema = false)
 abstract class ParkingSystemDatabase : RoomDatabase() {
     abstract fun userDao(
 

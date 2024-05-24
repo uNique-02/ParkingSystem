@@ -6,5 +6,5 @@ import com.example.parkingsystem.data.user.User
 
 sealed class UserType {
     data class RegularUser(val user: User) : UserType()
-    data class BusinessUser(val businessUser: businessUser) : UserType()
+    data class BusinessUser(val businessUser: businessUser?) : UserType()
 }
