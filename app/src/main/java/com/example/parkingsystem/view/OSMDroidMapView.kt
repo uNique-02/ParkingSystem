@@ -151,8 +151,10 @@ fun onLocationButtonClick(
     coroutineScope: CoroutineScope,
     hasZoomedToUserLocation: Boolean
 ) {
+
     val map = mapViewState.value ?: return
     val locationOverlay = map.overlays.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
+
     if (locationOverlay == null) {
         Log.e("onLocationButtonClick", "MyLocationNewOverlay instance is null")
         return
@@ -318,6 +320,7 @@ fun updateMapViewLocation(
     val mapView = mapViewState.value ?: return
 
     lastKnownLocation.value?.let { lastLocation ->
+
         val distance = calculateDistance(lastLocation, newLocation)
         if (distance > 5.0 && !hasZoomedToUserLocation) {
             mapView.controller.animateTo(newLocation, 18.0, 2000)

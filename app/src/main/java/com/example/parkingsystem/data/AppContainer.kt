@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.example.parkingsystem.data.business.BusinessRepository
 import com.example.parkingsystem.data.business.OfflineBusinessRepository
+import com.example.parkingsystem.data.parkingspace.OfflineParkingspaceRepository
+import com.example.parkingsystem.data.parkingspace.ParkingspaceRepository
 import com.example.parkingsystem.data.user.OfflineUsersRepository
 import com.example.parkingsystem.data.user.UsersRepository
 
@@ -13,6 +15,7 @@ import com.example.parkingsystem.data.user.UsersRepository
 interface AppContainer {
     val usersRepository: UsersRepository
     val businessRepository: BusinessRepository
+    val parkingspaceRepository: ParkingspaceRepository
 }
 
 /**
@@ -37,5 +40,8 @@ class AppDataContainer(private val context: Context,
     }
     override val businessRepository: BusinessRepository by lazy {
         OfflineBusinessRepository(ParkingSystemDatabase.getDatabase(context).businessUserDao())
+    }
+    override val parkingspaceRepository: ParkingspaceRepository by lazy {
+        OfflineParkingspaceRepository(ParkingSystemDatabase.getDatabase(context).ParkingspaceDao())
     }
 }

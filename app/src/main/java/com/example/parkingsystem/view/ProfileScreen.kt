@@ -110,9 +110,3 @@ fun ProfileItem(
         }
     }
 }
-
-@Preview
-@Composable
-fun PreviewProfileScreen() {
-    ProfileScreen(onBackPressed = {})
-}

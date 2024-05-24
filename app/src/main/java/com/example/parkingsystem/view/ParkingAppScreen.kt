@@ -2,6 +2,7 @@ package com.example.parkingsystem.view
 
 import ProfileScreen
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -47,7 +49,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -59,13 +63,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.parkingsystem.AppViewModelProvider
 import com.example.parkingsystem.R
+import com.example.parkingsystem.model.ProfileViewModel
+import com.example.parkingsystem.model.UserType
 import com.example.parkingsystem.ui.LoginScreen
 import com.example.parkingsystem.viewmodel.LoginViewModel
 import kotlinx.coroutines.launch
 
 
 enum class ParkingAppScreen() {
-    WelcomePage, Login, Register, MapView, Profile
+    WelcomePage, Login, Register, MapView, Profile, AddParkingSpace
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,6 +123,9 @@ fun ParkingApp() {
         composable(ParkingAppScreen.Profile.name) {
             ProfileScreen(onBackPressed = { navController.popBackStack() })
         }
+        composable(ParkingAppScreen.AddParkingSpace.name) {
+            AddParkingSpaceScreen(navController = navController)
+        }
     }
 }
 
@@ -155,6 +164,14 @@ fun ParkingAreaList(
             LocalContext.current
         )
     )
+
+    val profileViewModel: ProfileViewModel = viewModel(
+        factory = AppViewModelProvider.provideFactory(
+            LocalContext.current
+        )
+    )
+    var userType by remember { mutableStateOf(profileViewModel.currentUser.value) }
+
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
     //Remember Clicked item state
@@ -191,19 +208,42 @@ fun ParkingAreaList(
                     val scope = rememberCoroutineScope()
 
                     ///List of Navigation Items that will be clicked
+
                     val items = if (isLoggedIn) {
-                        listOf(
-                            NavigationItems(
-                                title = "Profile",
-                                selectedIcon = Icons.Filled.Person,
-                                unselectedIcon = Icons.Outlined.Person
-                            ),
-                            NavigationItems(
-                                title = "Logout",
-                                selectedIcon = Icons.Filled.ExitToApp,
-                                unselectedIcon = Icons.Outlined.ExitToApp
-                            ),
-                        )
+                        if(userType == UserType.BusinessUser(businessUser = null)) {
+
+                            listOf(
+                                NavigationItems(
+                                    title = "Profile",
+                                    selectedIcon = Icons.Filled.Person,
+                                    unselectedIcon = Icons.Outlined.Person
+                                ),
+                                NavigationItems(
+                                    title = "Add Parking Area",
+                                    selectedIcon = Icons.Filled.AddCircleOutline,
+                                    unselectedIcon = Icons.Outlined.AddCircleOutline
+                                ),
+                                NavigationItems(
+                                    title = "Logout",
+                                    selectedIcon = Icons.Filled.ExitToApp,
+                                    unselectedIcon = Icons.Outlined.ExitToApp
+                                ),
+                            )
+                        }
+                        else{
+                            listOf(
+                                NavigationItems(
+                                    title = "Profile",
+                                    selectedIcon = Icons.Filled.Person,
+                                    unselectedIcon = Icons.Outlined.Person
+                                ),
+                                NavigationItems(
+                                    title = "Logout",
+                                    selectedIcon = Icons.Filled.ExitToApp,
+                                    unselectedIcon = Icons.Outlined.ExitToApp
+                                ),
+                            )
+                        }
                     } else {
                         listOf(
                             NavigationItems(
@@ -227,9 +267,36 @@ fun ParkingAreaList(
                             drawerState = drawerState,
                             drawerContent = {
                                 ModalDrawerSheet(drawerContentColor = Color.Gray) {
+                                    IconButton(onClick = { scope.launch {
+                                        drawerState.close()
+                                    } }) {
+                                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                                    }
+                                    if(isLoggedIn){
+
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            // Replace with your profile image
+                                            Image(
+                                                painter = painterResource(id = R.drawable.profile_icon),
+                                                contentDescription = "Profile",
+                                                modifier = Modifier
+                                                    .size(64.dp)
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(text = "Welcome back, Kim")
+                                        }
+                                    }
+
                                     Spacer(
                                         modifier = Modifier
-                                            .height(16.dp)
+                                            .height(10.dp)
                                             .width(200.dp)
                                     ) //space (margin) from top
                                     items.forEachIndexed { index, item ->
@@ -251,16 +318,44 @@ fun ParkingAreaList(
                                                             navController.navigate(ParkingAppScreen.Register.name)
                                                         }
                                                     } else {
-                                                        Log.e(
-                                                            "Clicked",
-                                                            "Selected: $selectedItemIndex"
-                                                        )
-                                                        if (selectedItemIndex == 0) {
-                                                            navController.navigate(ParkingAppScreen.Profile.name)
-                                                            Log.e("Login", "Entered profile")
-                                                        } else if (selectedItemIndex == 1) {
-                                                            viewModel.logout()
-                                                            navController.navigate(ParkingAppScreen.MapView.name)
+                                                        if(userType == UserType.BusinessUser(businessUser = null)) {
+                                                            Log.e(
+                                                                "Clicked",
+                                                                "Selected: $selectedItemIndex"
+                                                            )
+                                                            if (selectedItemIndex == 0) {
+                                                                navController.navigate(
+                                                                    ParkingAppScreen.Profile.name
+                                                                )
+                                                                Log.e("Login", "Entered profile")
+                                                            } else if (selectedItemIndex == 1) {
+                                                                viewModel.logout()
+                                                                navController.navigate(
+                                                                    ParkingAppScreen.MapView.name
+                                                                )
+                                                            }
+                                                            else if (selectedItemIndex == 2) {
+                                                                viewModel.logout()
+                                                                navController.navigate(
+                                                                    ParkingAppScreen.MapView.name
+                                                                )
+                                                            }
+                                                        }else{
+                                                            Log.e(
+                                                                "Clicked",
+                                                                "Selected: $selectedItemIndex"
+                                                            )
+                                                            if (selectedItemIndex == 0) {
+                                                                navController.navigate(
+                                                                    ParkingAppScreen.Profile.name
+                                                                )
+                                                                Log.e("Login", "Entered profile")
+                                                            } else if (selectedItemIndex == 1) {
+                                                                viewModel.logout()
+                                                                navController.navigate(
+                                                                    ParkingAppScreen.MapView.name
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }

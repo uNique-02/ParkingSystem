@@ -1,11 +1,18 @@
 package com.example.parkingsystem.view
 
+import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -17,6 +24,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -28,6 +37,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,7 +57,6 @@ fun RegisterScreen(
     navController: NavController,
 ) {
     val viewModel: RegisterViewModel = viewModel(factory = AppViewModelProvider.provideFactory(LocalContext.current))
-    val loginViewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.provideFactory(LocalContext.current))
     val fName by viewModel.fName.collectAsState()
     val lName by viewModel.lName.collectAsState()
     val address by viewModel.address.collectAsState()
@@ -59,6 +69,8 @@ fun RegisterScreen(
     val islNameValid by viewModel.islNameValid.collectAsState()
     val isuNameValid by viewModel.isuNameValid.collectAsState()
     val isPasswordStrong by viewModel.isPasswordStrong.collectAsState()
+
+    val isOn by viewModel.isBusinessAccount.collectAsState()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -110,7 +122,7 @@ fun RegisterScreen(
         }
 
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(16.dp).padding(top = 80.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -134,6 +146,45 @@ fun RegisterScreen(
                         .padding(bottom = 16.dp)
                         .weight(2f)
                 )
+            }
+
+            Box(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(if (isOn) Color.Green else Color.Yellow)
+                        .padding(8.dp)
+                        .clickable {
+                            viewModel.toggleAccountType()
+
+                        }
+                ) {
+                    Text(text = "Is this a business account?",
+                        color = Color.Black,
+                        fontSize = 12.sp,
+                        modifier=Modifier.weight(1f).padding(start = 5.dp))
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (isOn) "Yes" else "No",
+                            color = if (isOn) Color.Black else Color.Red,
+                            fontSize = 18.sp
+                        )
+                    }
+                }
             }
 
             Button(
