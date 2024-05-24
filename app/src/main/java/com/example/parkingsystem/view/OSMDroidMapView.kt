@@ -67,6 +67,7 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
 
         FloatingActionButton(
             onClick = { hasZoomedToUserLocation = false // Reset zoom flag
+                Log.e("LocationButtonClicked", "Location Button Clicked. has zoom: " + hasZoomedToUserLocation)
                 onLocationButtonClick(context, mapViewState, location, lastKnownLocation, poiMarkers, coroutineScope, hasZoomedToUserLocation) },
             modifier = Modifier.padding(16.dp).align(Alignment.BottomEnd),
             content = {
@@ -114,6 +115,14 @@ fun onLocationButtonClick(
     hasZoomedToUserLocation: Boolean
 ) {
     val map = mapViewState.value
+
+    if (!hasZoomedToUserLocation) {
+        Log.e("LocationButtonClicked", "UpdateMapViewLocation $hasZoomedToUserLocation")
+        map?.controller?.animateTo(location.value, 18.0, 2000)
+        hasZoomedToUserLocation.not()
+    }
+
+
     val locationOverlay = map?.overlays?.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
     if (locationOverlay == null) {
         println("MyLocationNewOverlay instance is null")
@@ -233,8 +242,9 @@ fun updateMapViewLocation(
     val mapView = mapViewState.value ?: return
 
     lastKnownLocation.value?.let { lastLocation ->
-        val distance = calculateDistance(lastLocation, newLocation)
+        //val distance = calculateDistance(lastLocation, newLocation)
         if (!hasZoomedToUserLocation) {
+            Log.e("LocationButtonClicked", "UpdateMapViewLocation $hasZoomedToUserLocation")
             mapView.controller.animateTo(newLocation, 18.0, 2000)
             hasZoomedToUserLocation.not()
         }

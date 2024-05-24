@@ -21,13 +21,13 @@ interface businessUserDao {
     @Delete
     suspend fun delete(user: businessUser)
 
-    @Query("SELECT * from business WHERE businessName = :username")
+    @Query("SELECT * from business WHERE businessUsername = :username")
     fun getUser(username: String): Flow<businessUser>
 
     @Query("SELECT * from business WHERE businessID = :businessID")
     fun getCurrentUser(businessID: Int): Flow<businessUser>
 
-    @Query("SELECT * from business WHERE businessName = :username")
+    @Query("SELECT * from business WHERE businessUsername = :username")
     fun getCurrentUserID(username: String): Flow<businessUser>
 
     @Query("SELECT * from business ORDER BY businessID ASC")

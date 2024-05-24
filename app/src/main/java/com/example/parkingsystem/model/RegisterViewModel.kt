@@ -1,7 +1,11 @@
 package com.example.parkingsystem.viewmodel
 
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.parkingsystem.data.business.BusinessRepository
+import com.example.parkingsystem.data.business.businessUser
 import com.example.parkingsystem.data.user.User
 import com.example.parkingsystem.data.user.UsersRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,7 +13,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class RegisterViewModel
-    (private val repository: UsersRepository) : ViewModel() {
+    (private val repository: UsersRepository, private val businessRepository: BusinessRepository, context: Context) : ViewModel() {
+
+    private val _isBusinessAccount = MutableStateFlow(false)
+    val isBusinessAccount: StateFlow<Boolean> = _isBusinessAccount
+
     private val _fName = MutableStateFlow("")
     val fName: StateFlow<String> = _fName
 
@@ -42,6 +50,11 @@ class RegisterViewModel
 
     private val _isPasswordStrong = MutableStateFlow(false)
     val isPasswordStrong: StateFlow<Boolean> = _isPasswordStrong
+
+    fun toggleAccountType() {
+        _isBusinessAccount.value = !_isBusinessAccount.value
+        Log.e("CustomToggleSwitch", "isOn: " + isBusinessAccount.value)
+    }
 
     fun onfNameChange(newName: String) {
         _fName.value = newName
@@ -88,6 +101,28 @@ class RegisterViewModel
     }
 
     fun register() {
+        if(isBusinessAccount.value) {
+            registerBusiness()
+        } else {
+            registerUser()
+        }
+    }
+
+    fun registerBusiness() {
+        Log.e("RegisterViewModel", "Registering business user")
+        val newUser = businessUser(
+            businessName = _fName.value + " " + _lName.value,
+            businessAddress = _address.value,
+            businessNumber = _pNumber.value,
+            businessUsername = _username.value,
+            businessPassword = _password.value
+        )
+        viewModelScope.launch {
+            businessRepository.insertUser(newUser)
+        }
+    }
+    fun registerUser() {
+        Log.e("RegisterViewModel", "Registering regular user")
         val newUser = User(
             username = _username.value,
             password = _password.value,

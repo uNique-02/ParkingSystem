@@ -2,6 +2,7 @@ package com.example.parkingsystem.view
 
 import ProfileScreen
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -47,7 +49,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -227,9 +231,35 @@ fun ParkingAreaList(
                             drawerState = drawerState,
                             drawerContent = {
                                 ModalDrawerSheet(drawerContentColor = Color.Gray) {
+                                    IconButton(onClick = { scope.launch {
+                                        drawerState.close()
+                                    } }) {
+                                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                                    }
+                                    if(isLoggedIn){
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            // Replace with your profile image
+                                            Image(
+                                                painter = painterResource(id = R.drawable.profile_icon),
+                                                contentDescription = "Profile",
+                                                modifier = Modifier
+                                                    .size(64.dp)
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(text = "Welcome back, Kim")
+                                        }
+                                    }
+
                                     Spacer(
                                         modifier = Modifier
-                                            .height(16.dp)
+                                            .height(10.dp)
                                             .width(200.dp)
                                     ) //space (margin) from top
                                     items.forEachIndexed { index, item ->
