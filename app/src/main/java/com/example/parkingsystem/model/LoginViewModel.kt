@@ -3,6 +3,11 @@ package com.example.parkingsystem.viewmodel
 import android.content.Context
 import android.util.Log
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.parkingsystem.data.business.BusinessRepository
@@ -32,6 +37,27 @@ class LoginViewModel(private val repository: UsersRepository, private val busine
 
     private val _isPasswordValid = MutableStateFlow(false)
     val isPasswordValid: StateFlow<Boolean> = _isPasswordValid
+
+    private val _poiAddress = MutableStateFlow("")
+    val poiAddress: StateFlow<String> = _poiAddress.asStateFlow()
+
+    private val _distance = MutableStateFlow("")
+    val distance: StateFlow<String> = _distance.asStateFlow()
+
+    var showBottomSheet by mutableStateOf(false)
+        private set
+
+    fun toggleBottomSheet() {
+        showBottomSheet = !showBottomSheet
+    }
+
+    fun setPoiAddress(newPoiAddress: String) {
+        _poiAddress.value = newPoiAddress
+    }
+
+    fun setDistance(newDistance: String) {
+        _distance.value = newDistance
+    }
 
     fun onUsernameChange(newUsername: String) {
         _username.value = newUsername

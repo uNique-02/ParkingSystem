@@ -7,8 +7,10 @@ import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,9 +19,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.parkingsystem.AppViewModelProvider
 import com.example.parkingsystem.LocationCallback
 import com.example.parkingsystem.LocationHandler
 import com.example.parkingsystem.R
+import com.example.parkingsystem.viewmodel.LoginViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,8 +47,9 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.concurrent.CopyOnWriteArrayList
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
+fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight(), sheetState: SheetState) {
     val context = LocalContext.current
     val mapViewState = remember { mutableStateOf<MapView?>(null) }
     val taclobanGeoPoint = GeoPoint(11.2443, 125.0015)
@@ -53,6 +59,8 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
     val coroutineScope = rememberCoroutineScope()
     var hasZoomedToUserLocation by remember { mutableStateOf(false) }
 
+    val viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.provideFactory(
+        LocalContext.current))
 
     Box {
         AndroidView(
@@ -68,7 +76,7 @@ fun OSMDroidMapView(modifier: Modifier = Modifier.fillMaxHeight()) {
         FloatingActionButton(
             onClick = { hasZoomedToUserLocation = false // Reset zoom flag
                 Log.e("LocationButtonClicked", "Location Button Clicked. has zoom: " + hasZoomedToUserLocation)
-                onLocationButtonClick(context, mapViewState, location, lastKnownLocation, poiMarkers, coroutineScope, hasZoomedToUserLocation) },
+                onLocationButtonClick(context, mapViewState, location, lastKnownLocation, poiMarkers, coroutineScope, hasZoomedToUserLocation, viewModel, sheetState) },
             modifier = Modifier.padding(16.dp).align(Alignment.BottomEnd),
             content = {
                 Icon(
@@ -105,6 +113,7 @@ fun MapView.initializeMap() {
     })
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 fun onLocationButtonClick(
     context: android.content.Context,
     mapViewState: MutableState<MapView?>,
@@ -112,7 +121,9 @@ fun onLocationButtonClick(
     lastKnownLocation: MutableState<GeoPoint?>,
     poiMarkers: FolderOverlay,
     coroutineScope: CoroutineScope,
-    hasZoomedToUserLocation: Boolean
+    hasZoomedToUserLocation: Boolean,
+    viewModel: LoginViewModel,
+    sheetState: SheetState
 ) {
     val map = mapViewState.value
 
@@ -135,7 +146,7 @@ fun onLocationButtonClick(
             override fun onLocationUpdate(newLocation: GeoPoint) {
                 location.value = newLocation
                 removeAllPOIMarkers(mapViewState.value)
-                addPOIMarkers(context, mapViewState, location, poiMarkers, coroutineScope)
+                addPOIMarkers(context, mapViewState, location, poiMarkers, coroutineScope, viewModel, sheetState)
                 updateMapViewLocation(mapViewState, location, lastKnownLocation, hasZoomedToUserLocation)
             }
         }
@@ -162,17 +173,21 @@ fun clearRouteOverlays(mapView: MapView) {
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 fun addPOIMarkers(
     context: android.content.Context,
     mapViewState: MutableState<MapView?>,
     location: MutableState<GeoPoint?>,
     poiMarkers: FolderOverlay,
-    coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope,
+    viewModel: LoginViewModel,
+    sheetState: SheetState
 ) {
     val roadManager = OSRMRoadManager(context, "OSMBonusPackTutoUserAgent")
+
     coroutineScope.launch(Dispatchers.IO) {
         val poiProvider = NominatimPOIProvider("OSMBonusPackTutoUserAgent")
-        val pois = poiProvider.getPOICloseTo(location.value, "Parking", 10, 0.1)
+        val pois = poiProvider.getPOICloseTo(location.value, "Parking", 50, 0.1)
         withContext(Dispatchers.Main) {
             mapViewState.value?.let { mapView ->
                 val poiIcon = ContextCompat.getDrawable(context, R.drawable.marker_poi_default) as BitmapDrawable
@@ -191,10 +206,16 @@ fun addPOIMarkers(
 
                     poiMarker.setOnMarkerClickListener { marker, mapView ->
                         // Toggle description visibility
-                        if (marker.isInfoWindowShown) {
+                        /*if (marker.isInfoWindowShown) {
                             marker.closeInfoWindow()
                         } else {
                             marker.showInfoWindow()
+                        }*/
+                        coroutineScope.launch {
+                            viewModel.setPoiAddress(poi.mDescription)
+                            viewModel.setDistance(poiMarker.subDescription)
+                            viewModel.toggleBottomSheet()
+                            sheetState.show()
                         }
 
                         // Perform route calculation in a background thread

@@ -22,11 +22,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
@@ -37,6 +39,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -181,11 +184,18 @@ fun ParkingAreaList(
         mutableStateOf(0)
     }
 
+    val sheetState = rememberModalBottomSheetState()
+    val coroutineScope = rememberCoroutineScope()
+
+    val address by viewModel.poiAddress.collectAsState()
+    val distance by viewModel.distance.collectAsState()
+
     // Use a Box to layer content
     Box() {
         // OSMDroidMapView as the background covering the whole screen
         OSMDroidMapView(
-            modifier = Modifier.fillMaxHeight()
+            modifier = Modifier.fillMaxHeight(),
+            sheetState = sheetState
             // This ensures the map view covers the entire screen
         )
 
@@ -420,26 +430,29 @@ fun ParkingAreaList(
                         }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(Color(0XFF101921))
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        TextField(value = searchText,
-                            onValueChange = { searchText = it },
-                            textStyle = TextStyle(fontSize = 20.sp),
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search Icon",
-                                    modifier = Modifier.clickable {
-                                        // Handle the search icon click here
-                                        // For example, perform a search operation based on searchText
-                                        //getGeoPoint(searchText)
-                                    }
-                                )
-                            },
-                            placeholder = { Text(text = "Search") })
+                        if (viewModel.showBottomSheet) {
+                            ModalBottomSheet(
+                                sheetState = sheetState,
+                                onDismissRequest = { viewModel.toggleBottomSheet() },
+                                containerColor = Color.Black,
+                                contentColor = Color.White,
+                                content = {
+                                    Text(
+                                        modifier = Modifier.padding(start = 30.dp, end = 20.dp, bottom = 60.dp),
+                                        text = address)
+                                    Text(
+                                        modifier = Modifier.padding(start = 30.dp, end = 20.dp, bottom = 60.dp),
+                                        text = distance)
+                                }
+                            )
+
+                        }
+
                     }
                 }
             }
